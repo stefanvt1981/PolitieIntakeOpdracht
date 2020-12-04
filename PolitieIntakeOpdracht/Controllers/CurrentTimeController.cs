@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TimeZoneConverter;
 
 namespace PolitieIntakeOpdracht.Controllers
 {
@@ -15,10 +16,23 @@ namespace PolitieIntakeOpdracht.Controllers
 
         public CurrentTimeController(ILogger<CurrentTimeController> logger) => _logger = logger;
 
-        [HttpGet("{cityName}/{countryCode?}")]
-        public string Get(string cityName, string countryCode = null)
+        [HttpGet("{cityName}")]
+        public ActionResult<CurrentTimeDTO> Get(string cityName)
         {
-            return $"{cityName}, {(string.IsNullOrEmpty(countryCode) ? "Unknown" : countryCode)}";
+            try
+            {                          
+                var timeZoneInfo = TZConvert.GetTimeZoneInfo(TZConvert.RailsToIana(cityName));
+
+                DateTime utcDate = DateTime.UtcNow;
+                return Ok(new CurrentTimeDTO {
+                    TimeZone = timeZoneInfo.DisplayName,
+                    LocalTime = TimeZoneInfo.ConvertTimeFromUtc(utcDate, timeZoneInfo).ToString("HH:mm:ss"),
+                }) ;
+            }
+            catch (InvalidTimeZoneException)
+            {
+                return NotFound();
+            }            
         }
     }
 }
